@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Projectile Motion Drill - Physics With Keith</title>
+<style>
+/* ===================================================================
+   RESET & BASE
+   =================================================================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  font-family: 'Trebuchet MS', 'Lucida Grande', Tahoma, sans-serif;
+}
+
+/* ===================================================================
+   SCREEN CONTAINER — each screen fills the viewport
+   =================================================================== */
+.screen {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+
+/* ===================================================================
+   INTRO SCREEN
+   =================================================================== */
+#introScreen {
+  background: linear-gradient(140deg, #0d1b2a 0%, #093f6e 55%, #0d6efd22 100%);
+  color: #fff;
+}
+.intro-card {
+  background: rgba(255,255,255,0.06);
+  border: 2px solid rgba(255,220,50,0.4);
+  border-radius: 24px;
+  padding: 28px 36px;
+  max-width: 680px;
+  width: 92%;
+  text-align: center;
+  box-shadow: 0 0 60px rgba(0,160,255,0.25);
+}
+.intro-title {
+  font-size: 2.6rem; font-weight: 900; letter-spacing: 2px;
+  color: #FFD700; text-shadow: 0 0 20px #FFD70088;
+  margin-bottom: 4px;
+}
+.intro-subtitle {
+  font-size: 1.05rem; color: #7dd3fc; margin-bottom: 20px;
+  letter-spacing: 1px; text-transform: uppercase;
+}
+.rules-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin-bottom: 22px; text-align: left;
+}
+.rule-item {
+  background: rgba(255,255,255,0.07);
+  border-left: 3px solid #FFD700;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 0.83rem; color: #e2f0ff; line-height: 1.4;
+}
+.rule-item strong { color: #FFD700; }
+.intro-physics {
+  background: rgba(0,200,180,0.1);
+  border: 1px solid #00c8b4;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 20px;
+  font-size: 0.8rem; color: #a7f3e8; line-height: 1.5; text-align: left;
+}
+.intro-physics strong { color: #fff; }
+.launch-btn {
+  background: linear-gradient(135deg, #FF6B35, #FF3D6B);
+  color: #fff; border: none; border-radius: 50px;
+  padding: 14px 44px; font-size: 1.2rem; font-weight: 700;
+  cursor: pointer; letter-spacing: 2px;
+  box-shadow: 0 6px 25px rgba(255,60,100,0.45);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.launch-btn:hover {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 10px 35px rgba(255,60,100,0.6);
+}
+
+/* ===================================================================
+   GAME SCREEN
+   =================================================================== */
+#gameScreen {
+  background: linear-gradient(180deg, #cce8f7 0%, #a8d8f0 100%);
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+/* --- HEADER BAR --- */
+#header {
+  display: flex; align-items: center; gap: 10px;
+  background: linear-gradient(90deg, #1a3a5c, #1a5276);
+  padding: 0 16px; height: 56px; flex-shrink: 0;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+}
+.header-title {
+  font-size: 1.15rem; font-weight: 700; color: #FFD700;
+  text-shadow: 0 0 10px #FFD70066; flex-shrink: 0;
+  letter-spacing: 1px;
+}
+.header-spacer { flex: 1; }
+.hud-box {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 10px;
+  padding: 5px 13px;
+  font-size: 0.9rem; color: #fff;
+  display: flex; align-items: center; gap: 6px;
+}
+.hud-box .val {
+  font-size: 1.1rem; font-weight: 700; color: #FFD700;
+}
+#timerBox { min-width: 90px; }
+#timerBox.urgent .val { color: #FF6B6B; animation: blink 0.7s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.end-early-btn {
+  background: rgba(255,80,80,0.2);
+  border: 1px solid rgba(255,80,80,0.5);
+  color: #FFB3B3; border-radius: 8px;
+  padding: 6px 14px; font-size: 0.8rem;
+  cursor: pointer; transition: all 0.15s;
+}
+.end-early-btn:hover {
+  background: rgba(255,80,80,0.4);
+  color: #fff; transform: scale(1.05);
+}
+
+/* --- CONTENT AREA --- */
+#content {
+  display: flex; flex: 1; overflow: hidden;
+}
+
+/* --- LEFT PANEL (canvas) --- */
+#leftPanel {
+  width: 500px; flex-shrink: 0;
+  display: flex; flex-direction: column;
+  padding: 10px 8px 6px 10px;
+}
+#gameCanvas {
+  border-radius: 14px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  background: #87ceeb;
+  width: 100%; flex-shrink: 0;
+}
+#sceneDesc {
+  background: rgba(255,255,255,0.7);
+  border-radius: 10px;
+  margin-top: 7px;
+  padding: 7px 12px;
+  font-size: 0.78rem; color: #1a3a5c;
+  line-height: 1.45;
+}
+#questionCounter {
+  text-align: center;
+  font-size: 0.85rem; color: #1a5276;
+  margin-top: 6px; font-weight: 600;
+}
+
+/* --- RIGHT PANEL (questions) --- */
+#rightPanel {
+  flex: 1; overflow-y: auto;
+  padding: 10px 12px 10px 6px;
+  display: flex; flex-direction: column;
+}
+.question-header {
+  background: linear-gradient(135deg, #1a3a5c, #1a6898);
+  border-radius: 12px;
+  padding: 8px 14px;
+  margin-bottom: 8px;
+  color: #fff;
+  display: flex; align-items: center; gap: 8px;
+  flex-shrink: 0;
+}
+.question-header .q-num {
+  font-size: 1rem; font-weight: 700; color: #FFD700;
+}
+.question-header .q-instr {
+  font-size: 0.78rem; color: #a8d4f5;
+}
+
+/* --- VARIABLE ROWS --- */
+.section-label {
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: #555;
+  padding: 4px 8px; margin: 4px 0 2px 0;
+  background: rgba(255,255,255,0.5);
+  border-radius: 6px; display: inline-block;
+}
+.var-row {
+  background: rgba(255,255,255,0.75);
+  border-radius: 10px;
+  padding: 6px 10px;
+  margin-bottom: 5px;
+  border-left: 4px solid #ccc;
+  transition: border-color 0.2s, background 0.2s;
+}
+.var-row.given { border-left-color: #00BCD4; background: rgba(0,188,212,0.08); }
+.var-row.correct { border-left-color: #4CAF50; background: rgba(76,175,80,0.1); }
+.var-row.wrong { border-left-color: #F44336; background: rgba(244,67,54,0.08); }
+.var-row.active { border-left-color: #FF9800; background: rgba(255,152,0,0.08); }
+
+.var-top {
+  display: flex; align-items: center; gap: 8px; min-height: 30px;
+}
+.var-icon { font-size: 1rem; flex-shrink: 0; }
+.var-name {
+  font-size: 0.8rem; color: #2c3e50; font-weight: 600;
+  flex: 1;
+}
+.given-badge {
+  background: linear-gradient(135deg, #00BCD4, #0097A7);
+  color: #fff; border-radius: 8px;
+  padding: 3px 10px; font-size: 0.9rem; font-weight: 700;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.input-group {
+  display: flex; align-items: center; gap: 5px;
+}
+.var-input {
+  width: 80px; padding: 4px 7px;
+  border: 2px solid #ccc; border-radius: 7px;
+  font-size: 0.9rem; font-family: inherit;
+  text-align: center;
+  background: #fff;
+  transition: border-color 0.2s;
+  -moz-appearance: textfield;
+}
+.var-input::-webkit-outer-spin-button,
+.var-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.var-input:focus { outline: none; border-color: #0d6efd; }
+.var-input.input-correct { border-color: #4CAF50; background: #f0fff0; color: #2e7d32; }
+.var-input.input-wrong { border-color: #F44336; animation: shake 0.35s; }
+.var-input:disabled { opacity: 0.7; cursor: not-allowed; }
+@keyframes shake {
+  0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)}
+}
+.unit-label {
+  font-size: 0.85rem; color: #555; font-weight: 600; white-space: nowrap;
+}
+.attempts-badge {
+  font-size: 0.7rem;
+  background: #FF9800; color: #fff;
+  border-radius: 20px; padding: 2px 7px;
+  white-space: nowrap;
+}
+.correct-mark { color: #4CAF50; font-size: 1.1rem; font-weight: 700; }
+.wrong-mark { color: #F44336; font-size: 1.1rem; font-weight: 700; }
+
+.var-hint {
+  font-size: 0.73rem; color: #7b5e00;
+  background: #FFF3CD;
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin-top: 4px;
+  border-left: 3px solid #FFD700;
+  display: none;
+}
+.var-answer-reveal {
+  font-size: 0.75rem; color: #1a5276;
+  background: rgba(100,149,237,0.15);
+  border-radius: 6px;
+  padding: 3px 8px;
+  margin-top: 3px;
+  display: none;
+}
+.points-earned {
+  font-size: 0.7rem; font-weight: 700;
+  border-radius: 10px; padding: 1px 6px; margin-left: 4px;
+}
+.pts-3 { background: #4CAF50; color: #fff; }
+.pts-2 { background: #FF9800; color: #fff; }
+.pts-1 { background: #F44336; color: #fff; }
+.pts-0 { background: #9E9E9E; color: #fff; }
+
+#nextQuestionArea {
+  text-align: center; margin-top: 8px;
+  padding: 8px; display: none;
+}
+.next-btn {
+  background: linear-gradient(135deg, #1a5276, #2980b9);
+  color: #fff; border: none; border-radius: 20px;
+  padding: 9px 28px; font-size: 0.9rem; font-weight: 700;
+  cursor: pointer; letter-spacing: 1px;
+  box-shadow: 0 4px 15px rgba(41,128,185,0.4);
+  transition: all 0.15s;
+}
+.next-btn:hover { transform: scale(1.05); }
+
+/* ===================================================================
+   END SCREEN
+   =================================================================== */
+#endScreen {
+  background: linear-gradient(140deg, #0d1b2a 0%, #093f6e 55%, #06437a 100%);
+  color: #fff;
+}
+.end-card {
+  background: rgba(255,255,255,0.07);
+  border: 2px solid rgba(255,220,50,0.4);
+  border-radius: 24px;
+  padding: 32px 40px;
+  max-width: 580px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 0 60px rgba(0,160,255,0.2);
+}
+.end-title { font-size: 2.2rem; font-weight: 900; color: #FFD700; margin-bottom: 10px; }
+.end-score-big {
+  font-size: 4rem; font-weight: 900;
+  color: #fff; margin: 12px 0;
+  text-shadow: 0 0 30px rgba(255,215,0,0.6);
+}
+.end-stats-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px; margin: 18px 0;
+}
+.end-stat {
+  background: rgba(255,255,255,0.09);
+  border-radius: 12px; padding: 12px;
+}
+.end-stat .stat-val {
+  font-size: 1.8rem; font-weight: 700; color: #FFD700;
+}
+.end-stat .stat-label { font-size: 0.78rem; color: #a8d4f5; }
+.grade-msg {
+  font-size: 1.1rem; color: #a7f3d0;
+  margin-bottom: 20px; padding: 10px;
+  background: rgba(0,200,100,0.1); border-radius: 10px;
+}
+.play-again-btn {
+  background: linear-gradient(135deg, #FF6B35, #FF3D6B);
+  color: #fff; border: none; border-radius: 50px;
+  padding: 14px 40px; font-size: 1.1rem; font-weight: 700;
+  cursor: pointer; letter-spacing: 1px;
+  box-shadow: 0 6px 25px rgba(255,60,100,0.4);
+  transition: all 0.15s;
+}
+.play-again-btn:hover { transform: scale(1.05); }
+
+/* ===================================================================
+   CUSTOM SCROLLBAR for right panel
+   =================================================================== */
+#rightPanel::-webkit-scrollbar { width: 6px; }
+#rightPanel::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); border-radius: 3px; }
+#rightPanel::-webkit-scrollbar-thumb { background: #aaa; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- ================================================================
+     INTRO SCREEN
+     ================================================================ -->
+<div id="introScreen" class="screen">
+  <div class="intro-card">
+    <div class="intro-title">Projectile Motion Drill</div>
+    <div class="intro-subtitle">Physics With Keith</div>
+
+    <div class="rules-grid">
+      <div class="rule-item">⏱️ You have <strong>15 minutes</strong> to answer as many questions as possible.</div>
+      <div class="rule-item">⭐ <strong>3 points</strong> for 1st try, <strong>2</strong> for 2nd, <strong>1</strong> for 3rd — 0 if you miss all three.</div>
+      <div class="rule-item">🔢 Answers accepted if correct to <strong>2 significant figures</strong> (±1 in last digit is fine).</div>
+      <div class="rule-item">💡 <strong>Hints</strong> appear after each wrong answer to guide you.</div>
+      <div class="rule-item">✅ After 3 wrong attempts, the <strong>correct answer is revealed</strong>.</div>
+      <div class="rule-item">🎯 Enter answers in the boxes — no need to include units.</div>
+    </div>
+
+
+    <button class="launch-btn" onclick="startGame()">🚀 LAUNCH!</button>
+  </div>
+</div>
+
+<!-- ================================================================
+     GAME SCREEN
+     ================================================================ -->
+<div id="gameScreen" class="screen" style="display:none">
+
+  <!-- HEADER -->
+  <div id="header">
+    <span class="header-title">Projectile Motion Drill - Physics With Keith</span>
+    <div class="header-spacer"></div>
+    <div class="hud-box" id="timerBox">
+      ⏱️ <span class="val" id="timerDisplay">15:00</span>
+    </div>
+    <div class="hud-box">
+      ⭐ <span class="val" id="scoreDisplay">0</span> pts
+    </div>
+    <div class="hud-box">
+      📋 Q<span id="qNumDisplay">1</span>
+    </div>
+    <button class="end-early-btn" onclick="endGame()">🏁 End Early</button>
+  </div>
+
+  <!-- CONTENT -->
+  <div id="content">
+
+    <!-- LEFT: Canvas + description -->
+    <div id="leftPanel">
+      <canvas id="gameCanvas" width="488" height="262"></canvas>
+      <div id="sceneDesc">A coastal cannon fires at a boat out at sea. Use the given values — shown in <strong style="color:#0097A7">teal</strong> — to find the unknowns. g = 9.81 m/s²</div>
+      <div id="questionCounter">Questions completed: <strong id="qCompleteNum">0</strong></div>
+    </div>
+
+    <!-- RIGHT: Question panel -->
+    <div id="rightPanel">
+      <div class="question-header">
+        <span class="q-num" id="qHeader">Question 1</span>
+        <span class="q-instr">Enter your answers — press Enter or click another box to check each one.</span>
+      </div>
+
+      <!-- Variable rows are injected here by JS -->
+      <div id="varsContainer"></div>
+
+      <!-- Next question button (shown when all vars answered) -->
+      <div id="nextQuestionArea">
+        <div id="questionFeedback" style="color:#1a5276;font-size:0.85rem;margin-bottom:6px;"></div>
+        <button class="next-btn" onclick="newQuestion()">➡️ Next Question</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================================================================
+     END SCREEN
+     ================================================================ -->
+<div id="endScreen" class="screen" style="display:none">
+  <div class="end-card">
+    <div class="end-title">🎯 Time's Up!</div>
+    <div style="color:#a8d4f5;font-size:0.9rem;margin-bottom:8px;">YOUR FINAL SCORE</div>
+    <div class="end-score-big" id="finalScore">0</div>
+    <div class="end-stats-grid">
+      <div class="end-stat">
+        <div class="stat-val" id="endQuestions">0</div>
+        <div class="stat-label">Questions completed</div>
+      </div>
+      <div class="end-stat">
+        <div class="stat-val" id="endAccuracy">0%</div>
+        <div class="stat-label">First-attempt accuracy</div>
+      </div>
+      <div class="end-stat">
+        <div class="stat-val" id="endMaxPoss">0</div>
+        <div class="stat-label">Max possible score</div>
+      </div>
+      <div class="end-stat">
+        <div class="stat-val" id="endPct">0%</div>
+        <div class="stat-label">Score percentage</div>
+      </div>
+    </div>
+    <div class="grade-msg" id="gradeMsg">Well done!</div>
+    <button class="play-again-btn" onclick="location.reload()">🔄 Play Again!</button>
+  </div>
+</div>
+
+
+<!-- ================================================================
+     JAVASCRIPT — GAME LOGIC
+     ================================================================ -->
+<script>
+// ================================================================
+// CONSTANTS
+// ================================================================
+const g = 9.81;                 // gravitational field strength (m/s²)
+const GAME_DURATION = 15 * 60;  // 15 minutes in seconds
+const MAX_ATTEMPTS = 3;         // attempts allowed per unknown
+
+// Points for getting the answer on 1st, 2nd, or 3rd attempt
+const ATTEMPT_POINTS = [3, 2, 1];
+
+// ================================================================
+// VARIABLE METADATA
+// Defines labels, units, icons, and two hint levels for each variable.
+// ================================================================
+const VAR_INFO = {
+  theta: {
+    label: 'Angle of launch (θ)',
+    unit: '°',
+    icon: '📐',
+    hints: [
+      '💡 Use tan(θ) = uy ÷ ux, so θ = arctan(uy ÷ ux).',
+      '💡 θ = arctan(uy ÷ ux). If u is given: use sin θ = uy/u or cos θ = ux/u.'
+    ]
+  },
+  u: {
+    label: 'Initial velocity (u)',
+    unit: 'm/s',
+    icon: '🚀',
+    hints: [
+      '💡 u² = ux² + uy² (Pythagoras), so u = √(ux² + uy²).',
+      '💡 u = √(ux² + uy²). Square both components, add, then square root.'
+    ]
+  },
+  ux: {
+    label: 'Horizontal component (uₓ)',
+    unit: 'm/s',
+    icon: '➡️',
+    hints: [
+      '💡 ux = u × cos(θ). The horizontal component uses cosine.',
+      '💡 ux = u × cos(θ). If only uy and u are given, use ux = √(u² − uy²).'
+    ]
+  },
+  uy: {
+    label: 'Vertical component (uᵧ)',
+    unit: 'm/s',
+    icon: '⬆️',
+    hints: [
+      '💡 uy = u × sin(θ). The vertical component uses sine.',
+      '💡 uy = u × sin(θ). If only ux and u are given, use uy = √(u² − ux²).'
+    ]
+  },
+  h: {
+    label: 'Tower height (h)',
+    unit: 'm',
+    icon: '🏰',
+    hints: [
+      '💡 Find flight time t from x = uₓ × t, then use the vertical equation.',
+      '💡 t = x ÷ uₓ. Then h = ½ × g × t² − uᵧ × t (from 0 = h + uᵧt − ½gt²).'
+    ]
+  },
+  ymax: {
+    label: 'Maximum height (yₘₐₓ)',
+    unit: 'm',
+    icon: '🏔️',
+    hints: [
+      '💡 At maximum height, vertical velocity = 0. Extra height above tower = uᵧ²/(2g).',
+      '💡 yₘₐₓ = h + uᵧ²/(2g). The "extra" height above the tower top is uᵧ²/(2g).'
+    ]
+  },
+  x: {
+    label: 'Horizontal range (x)',
+    unit: 'm',
+    icon: '🎯',
+    hints: [
+      '💡 x = uₓ × t. First find the total time in the air.',
+      '💡 Total flight time: t = (uᵧ + √(uᵧ² + 2·g·h)) / g. Then x = uₓ × t.'
+    ]
+  },
+  v_final: {
+    label: 'Final velocity when landing (v)',
+    unit: 'm/s',
+    icon: '💥',
+    hints: [
+      '💡 Find the vertical velocity at landing: vᵧ = uᵧ − g·t. Then v = √(vₓ² + vᵧ²).',
+      '💡 vₓ = uₓ (unchanged). vᵧ = uᵧ − g·t (t = total flight time). v = √(vₓ² + vᵧ²).'
+    ]
+  },
+  angle_final: {
+    label: 'Final angle below horizontal',
+    unit: '°',
+    icon: '📉',
+    hints: [
+      '💡 angle = arctan(|vᵧ| ÷ vₓ), where vᵧ is the vertical speed at landing.',
+      '💡 vᵧ = uᵧ − g·t (negative = going down). angle = arctan(|vᵧ| ÷ uₓ).'
+    ]
+  }
+};
+
+// Display order for the variable rows
+const VAR_ORDER = ['theta','u','ux','uy','h','ymax','x','v_final','angle_final'];
+
+// ================================================================
+// GAME STATE
+// ================================================================
+let score = 0;           // accumulated score
+let timeLeft = GAME_DURATION;
+let timerInterval = null;
+let currentQ = null;     // current question object
+let questionNum = 0;     // questions generated so far
+let questionsCompleted = 0; // questions fully answered
+let firstAttemptCorrect = 0; // count of vars answered correctly on 1st attempt
+let totalCalcVars = 0;   // total calculated vars seen (for accuracy %)
+let maxPossible = 0;     // max possible score so far
+
+// Animation state
+let animTime = 0;          // current animation time (seconds)
+let animDuration = 0;      // total flight time for animation
+let animLoop = null;       // requestAnimationFrame id
+let lastTimestamp = null;
+
+// ================================================================
+// PHYSICS HELPERS
+// ================================================================
+
+// Convert degrees to radians
+function deg2rad(d) { return d * Math.PI / 180; }
+
+// Convert radians to degrees
+function rad2deg(r) { return r * 180 / Math.PI; }
+
+// Random integer between min and max inclusive
+function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+// Shuffle an array and return it
+function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+
+// Choose n random items from an array
+function choose(arr, n) { return shuffle(arr).slice(0, n); }
+
+/**
+ * Round a number to 2 significant figures.
+ * e.g. 9.81 → 9.8,  123 → 120,  0.0456 → 0.046
+ */
+function roundTo2SF(n) {
+  if (n === 0) return 0;
+  const absN = Math.abs(n);
+  const d = Math.ceil(Math.log10(absN + 1e-15));
+  const power = 2 - d;
+  const mag = Math.pow(10, power);
+  return Math.round(absN * mag) / mag;
+}
+
+/**
+ * Get the magnitude of the second significant figure digit.
+ * e.g. For 9.8 → 0.1 (tenths place)
+ *      For 120 → 10 (tens place)
+ *      For 0.046 → 0.001
+ */
+function get2SFUnit(n) {
+  if (n === 0) return 1;
+  const rounded = roundTo2SF(Math.abs(n));
+  if (rounded === 0) return 1;
+  const d = Math.floor(Math.log10(rounded) + 1e-9);
+  return Math.pow(10, d - 1);
+}
+
+/**
+ * Check if a student's answer is acceptable.
+ * Rules:
+ *  - Both values rounded to 2SF must match, OR
+ *  - The student's 2SF value is within ±1 second-significant-figure unit of the correct 2SF value.
+ */
+function isAcceptable(studentRaw, correctVal) {
+  const sv = parseFloat(studentRaw);
+  if (isNaN(sv) || !isFinite(sv)) return false;
+  const student2SF = roundTo2SF(Math.abs(sv));
+  const correct2SF = roundTo2SF(Math.abs(correctVal));
+  const tol = get2SFUnit(correct2SF);
+  return Math.abs(student2SF - correct2SF) <= tol + 1e-9;
+}
+
+// ================================================================
+// QUESTION GENERATION
+// ================================================================
+/**
+ * Generate a random, physically consistent projectile question.
+ * 
+ * The scenario: a cannon on a tower fires a ball at angle θ with initial
+ * speed u. The ball lands in the sea (y=0) where a boat is waiting.
+ * 
+ * Returns an object with all values and tracking of which are given/calculated.
+ */
+function generateQuestion() {
+  // === Generate random physical parameters ===
+  const theta_deg = randInt(20, 70);              // launch angle (°)
+  const theta = deg2rad(theta_deg);               // in radians
+  const u = randInt(15, 40);                      // initial speed (m/s)
+  const ux = u * Math.cos(theta);                 // horizontal component
+  const uy = u * Math.sin(theta);                 // vertical component
+  const h = randInt(6, 28);                       // tower height (m)
+
+  // === Calculate derived values ===
+  // Time to reach maximum height (vy = 0 at top)
+  const t_top = uy / g;
+
+  // Maximum height above sea level: using vy² = uy² - 2g(ymax - h), vy=0 at top
+  const y_max = h + (uy * uy) / (2 * g);
+
+  // Total flight time: solve 0 = h + uy*t - 0.5*g*t^2 for positive t
+  // Using quadratic formula: t = (uy + sqrt(uy^2 + 2gh)) / g
+  const t_total = (uy + Math.sqrt(uy * uy + 2 * g * h)) / g;
+
+  // Horizontal range
+  const x = ux * t_total;
+
+  // Velocity at landing
+  const vy_final = uy - g * t_total;   // negative (downward)
+  const vx_final = ux;                  // unchanged (no air resistance)
+  const v_final = Math.sqrt(vx_final * vx_final + vy_final * vy_final);
+
+  // Angle below horizontal at landing
+  const angle_final_deg = rad2deg(Math.atan2(Math.abs(vy_final), vx_final));
+
+  // === Choose which variables are GIVEN vs CALCULATED ===
+  // Rule: give 2 of {theta, u, ux, uy}, calculate the other 2
+  const velGroup = ['theta', 'u', 'ux', 'uy'];
+  const givenVel = choose(velGroup, 2);
+  const calcVel = velGroup.filter(v => !givenVel.includes(v));
+
+  // Rule: give 1 of {h, ymax, x}, calculate the other 2
+  const spaceGroup = ['h', 'ymax', 'x'];
+  const givenSpace = choose(spaceGroup, 1);
+  const calcSpace = spaceGroup.filter(v => v !== givenSpace[0]);
+
+  // Final velocity (v_final and angle_final) are ALWAYS calculated
+  const given = [...givenVel, givenSpace[0]];
+  const toCalc = [...calcVel, ...calcSpace, 'v_final', 'angle_final'];
+
+  // Lookup table for answer values
+  const answers = {
+    theta: theta_deg,
+    u,
+    ux,
+    uy,
+    h,
+    ymax: y_max,
+    x,
+    v_final,
+    angle_final: angle_final_deg
+  };
+
+  // State tracking for each unknown variable
+  const varState = {};
+  for (const v of toCalc) {
+    varState[v] = {
+      attempts: 0,       // how many times the student has tried
+      status: 'unanswered', // 'unanswered' | 'correct' | 'failed'
+      pointsEarned: 0,
+      locked: false      // no more input allowed
+    };
+  }
+
+  return {
+    theta_deg, theta, u, ux, uy, h,
+    y_max, t_top, t_total, x,
+    vy_final, vx_final, v_final, angle_final_deg,
+    given, toCalc, givenVel, givenSpace: givenSpace[0],
+    calcVel, calcSpace, answers, varState
+  };
+}
+
+// ================================================================
+// GAME FLOW
+// ================================================================
+
+/** Start the game: switch to game screen and load first question */
+function startGame() {
+  document.getElementById('introScreen').style.display = 'none';
+  document.getElementById('gameScreen').style.display = 'flex';
+
+  // Start the countdown timer
+  timerInterval = setInterval(tickTimer, 1000);
+
+  newQuestion();
+}
+
+/** Generate a new question and render it */
+function newQuestion() {
+  questionNum++;
+  document.getElementById('nextQuestionArea').style.display = 'none';
+  document.getElementById('qHeader').textContent = `Question ${questionNum}`;
+  document.getElementById('qNumDisplay').textContent = questionNum;
+
+  // Update max possible score counter
+  // Each question has 6 unknown variables, max 3 points each
+  maxPossible += 6 * 3;
+
+  currentQ = generateQuestion();
+  totalCalcVars += currentQ.toCalc.length;
+
+  renderQuestion(currentQ);
+  startAnimation(currentQ);
+}
+
+/** Called each second to decrement the timer */
+function tickTimer() {
+  timeLeft--;
+  updateTimerDisplay();
+  if (timeLeft <= 0) {
+    endGame();
+  }
+}
+
+/** Update the timer display element */
+function updateTimerDisplay() {
+  const mins = Math.floor(timeLeft / 60);
+  const secs = timeLeft % 60;
+  document.getElementById('timerDisplay').textContent =
+    `${mins}:${secs.toString().padStart(2, '0')}`;
+
+  const box = document.getElementById('timerBox');
+  if (timeLeft <= 60) box.classList.add('urgent');
+}
+
+/** Update the score display */
+function updateScoreDisplay() {
+  document.getElementById('scoreDisplay').textContent = score;
+}
+
+/** End the game: stop timer, show results */
+function endGame() {
+  clearInterval(timerInterval);
+  cancelAnimationFrame(animLoop);
+
+  // Calculate statistics
+  const accuracy = totalCalcVars > 0
+    ? Math.round((firstAttemptCorrect / totalCalcVars) * 100)
+    : 0;
+  const pct = maxPossible > 0
+    ? Math.round((score / maxPossible) * 100)
+    : 0;
+
+  // Grade message
+  let gradeMsg = '';
+  if (pct >= 90)      gradeMsg = '🌟 Outstanding! You\'re a projectile master!';
+  else if (pct >= 75) gradeMsg = '🎉 Excellent work! Great physics skills!';
+  else if (pct >= 60) gradeMsg = '👍 Good job! Keep practising those formulas!';
+  else if (pct >= 40) gradeMsg = '📚 Not bad — review the equations and try again!';
+  else                gradeMsg = '🔁 Keep practising! Physics takes time to click!';
+
+  document.getElementById('finalScore').textContent = score;
+  document.getElementById('endQuestions').textContent = questionsCompleted;
+  document.getElementById('endAccuracy').textContent = accuracy + '%';
+  document.getElementById('endMaxPoss').textContent = maxPossible;
+  document.getElementById('endPct').textContent = pct + '%';
+  document.getElementById('gradeMsg').textContent = gradeMsg;
+
+  document.getElementById('gameScreen').style.display = 'none';
+  document.getElementById('endScreen').style.display = 'flex';
+}
+
+// ================================================================
+// RENDERING — build the question UI
+// ================================================================
+
+/**
+ * Render all variable rows for the current question.
+ * Given variables show a badge; unknowns show an input box.
+ */
+function renderQuestion(q) {
+  const container = document.getElementById('varsContainer');
+  container.innerHTML = '';
+
+  // Section: Velocity Components
+  const velLabel = document.createElement('div');
+  velLabel.className = 'section-label';
+  velLabel.textContent = '🔧 Initial velocity';
+  container.appendChild(velLabel);
+
+  // Section: Spatial Variables
+  // We'll build all rows in VAR_ORDER and insert section headers before appropriate groups
+  let passedSpatial = false;
+  let passedFinal = false;
+
+  for (const varName of VAR_ORDER) {
+    // Insert spatial section header before h
+    if (varName === 'h' && !passedSpatial) {
+      passedSpatial = true;
+      const lbl = document.createElement('div');
+      lbl.className = 'section-label';
+      lbl.textContent = '📏 Heights & Range';
+      container.appendChild(lbl);
+    }
+    // Insert final velocity section header
+    if (varName === 'v_final' && !passedFinal) {
+      passedFinal = true;
+      const lbl = document.createElement('div');
+      lbl.className = 'section-label';
+      lbl.textContent = '💫 Landing Velocity';
+      container.appendChild(lbl);
+    }
+
+    const row = buildVarRow(q, varName);
+    container.appendChild(row);
+  }
+}
+
+/**
+ * Build a single variable row DOM element.
+ * Given vars get a styled badge; unknown vars get an input box.
+ */
+function buildVarRow(q, varName) {
+  const info = VAR_INFO[varName];
+  const isGiven = q.given.includes(varName);
+  const correctVal = q.answers[varName];
+
+  const row = document.createElement('div');
+  row.className = 'var-row ' + (isGiven ? 'given' : '');
+  row.id = 'row-' + varName;
+
+  const top = document.createElement('div');
+  top.className = 'var-top';
+
+  // Icon + name
+  const icon = document.createElement('span');
+  icon.className = 'var-icon';
+  icon.textContent = info.icon;
+
+  const name = document.createElement('span');
+  name.className = 'var-name';
+  name.textContent = info.label;
+
+  top.appendChild(icon);
+  top.appendChild(name);
+
+  if (isGiven) {
+    // Display the value as a badge
+    const badge = document.createElement('span');
+    badge.className = 'given-badge';
+    badge.textContent = formatVal(correctVal, varName) + ' ' + info.unit;
+    top.appendChild(badge);
+  } else {
+    // Input group: textbox + unit + attempts badge
+    const inputGroup = document.createElement('div');
+    inputGroup.className = 'input-group';
+
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.step = 'any';
+    input.className = 'var-input';
+    input.id = 'input-' + varName;
+    input.placeholder = info.unit; // show unit as placeholder before typing
+    input.setAttribute('autocomplete', 'off');
+
+    // Check on Enter key press
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        checkAnswer(q, varName, this.value);
+      }
+    });
+    // Also check when user leaves the field (blur)
+    input.addEventListener('blur', function() {
+      if (this.value.trim() !== '' && !q.varState[varName].locked) {
+        checkAnswer(q, varName, this.value);
+      }
+    });
+
+    const unit = document.createElement('span');
+    unit.className = 'unit-label';
+    unit.textContent = info.unit;
+
+    const attemptsBadge = document.createElement('span');
+    attemptsBadge.className = 'attempts-badge';
+    attemptsBadge.id = 'att-' + varName;
+    attemptsBadge.style.display = 'none'; // hidden until first attempt
+
+    inputGroup.appendChild(input);
+    inputGroup.appendChild(unit);
+    inputGroup.appendChild(attemptsBadge);
+
+    // Status mark (✓ or ✗)
+    const statusSpan = document.createElement('span');
+    statusSpan.id = 'status-' + varName;
+    statusSpan.style.marginLeft = '4px';
+    inputGroup.appendChild(statusSpan);
+
+    top.appendChild(inputGroup);
+  }
+
+  row.appendChild(top);
+
+  if (!isGiven) {
+    // Hint area (hidden until wrong answer)
+    const hint = document.createElement('div');
+    hint.className = 'var-hint';
+    hint.id = 'hint-' + varName;
+    row.appendChild(hint);
+
+    // Answer reveal (shown when locked)
+    const reveal = document.createElement('div');
+    reveal.className = 'var-answer-reveal';
+    reveal.id = 'reveal-' + varName;
+    row.appendChild(reveal);
+  }
+
+  return row;
+}
+
+/**
+ * Format a value nicely for display (3 significant figures for clarity).
+ */
+function formatVal(val, varName) {
+  if (varName === 'theta' || varName === 'angle_final') {
+    return val.toFixed(1);
+  }
+  // Show 3 SF for display
+  if (Math.abs(val) >= 100) return val.toFixed(0);
+  if (Math.abs(val) >= 10)  return val.toFixed(1);
+  return val.toFixed(2);
+}
+
+// ================================================================
+// ANSWER CHECKING
+// ================================================================
+
+/**
+ * Check the student's answer for a specific variable.
+ * Handles attempt counting, scoring, hints, and locking.
+ */
+function checkAnswer(q, varName, rawValue) {
+  const state = q.varState[varName];
+  if (state.locked) return; // already settled
+
+  const correctVal = q.answers[varName];
+  const info = VAR_INFO[varName];
+  const input = document.getElementById('input-' + varName);
+  const row = document.getElementById('row-' + varName);
+  const hintEl = document.getElementById('hint-' + varName);
+  const attBadge = document.getElementById('att-' + varName);
+  const statusEl = document.getElementById('status-' + varName);
+  const revealEl = document.getElementById('reveal-' + varName);
+
+  if (rawValue.trim() === '') return; // nothing entered
+
+  state.attempts++;
+  const correct = isAcceptable(rawValue, correctVal);
+
+  if (correct) {
+    // === CORRECT ===
+    const pts = ATTEMPT_POINTS[state.attempts - 1] || 0;
+    state.status = 'correct';
+    state.locked = true;
+    state.pointsEarned = pts;
+    score += pts;
+    if (state.attempts === 1) firstAttemptCorrect++;
+
+    // Update UI
+    input.classList.add('input-correct');
+    input.disabled = true;
+    input.value = formatVal(correctVal, varName);
+    row.className = 'var-row correct';
+
+    statusEl.innerHTML =
+      `<span class="correct-mark">✓</span>` +
+      `<span class="points-earned pts-${pts}">${pts}pt${pts !== 1 ? 's' : ''}</span>`;
+
+    attBadge.style.display = 'none';
+    hintEl.style.display = 'none';
+    updateScoreDisplay();
+
+  } else {
+    // === WRONG ===
+    input.classList.add('input-wrong');
+    setTimeout(() => input.classList.remove('input-wrong'), 400);
+    row.classList.add('active');
+
+    const remaining = MAX_ATTEMPTS - state.attempts;
+
+    if (remaining > 0) {
+      // Still attempts left — show hint and remaining count
+      attBadge.style.display = 'inline-block';
+      attBadge.textContent = remaining === 1
+        ? '⚠️ Last attempt!'
+        : `${remaining} attempts left`;
+
+      // Show a hint (deeper hint after 2nd wrong attempt)
+      const hintIndex = Math.min(state.attempts - 1, info.hints.length - 1);
+      hintEl.textContent = info.hints[hintIndex];
+      hintEl.style.display = 'block';
+
+    } else {
+      // === OUT OF ATTEMPTS — reveal correct answer ===
+      state.status = 'failed';
+      state.locked = true;
+      state.pointsEarned = 0;
+
+      input.disabled = true;
+      row.className = 'var-row wrong';
+      attBadge.style.display = 'none';
+
+      statusEl.innerHTML =
+        `<span class="wrong-mark">✗</span>` +
+        `<span class="points-earned pts-0">0pts</span>`;
+
+      // Show the correct answer
+      revealEl.textContent =
+        `✅ Answer: ${formatVal(correctVal, varName)} ${info.unit}`;
+      revealEl.style.display = 'block';
+      hintEl.style.display = 'none';
+    }
+  }
+
+  // Check if ALL unknowns are now resolved
+  checkAllAnswered(q);
+}
+
+/**
+ * Check whether every unknown variable has been resolved (correct or failed).
+ * If so, show the "Next Question" button and update completion count.
+ */
+function checkAllAnswered(q) {
+  const allDone = q.toCalc.every(v => q.varState[v].locked);
+  if (allDone) {
+    questionsCompleted++;
+    document.getElementById('qCompleteNum').textContent = questionsCompleted;
+
+    // Calculate this question's total points earned
+    const earned = q.toCalc.reduce((sum, v) => sum + q.varState[v].pointsEarned, 0);
+    const maxForQ = q.toCalc.length * 3;
+
+    const feedbackEl = document.getElementById('questionFeedback');
+    feedbackEl.textContent =
+      `Question complete! You scored ${earned} / ${maxForQ} points.`;
+
+    document.getElementById('nextQuestionArea').style.display = 'block';
+
+    // Auto-scroll to the next button
+    document.getElementById('nextQuestionArea').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
+// ================================================================
+// CANVAS ANIMATION
+// ================================================================
+
+/** Get the canvas and 2D context */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+/**
+ * Start the projectile animation for the given question.
+ * The ball follows the true parabolic path from the top of the tower
+ * to the landing point.
+ */
+function startAnimation(q) {
+  cancelAnimationFrame(animLoop);
+  animTime = 0;
+  animDuration = q.t_total;
+  lastTimestamp = null;
+
+  function frame(ts) {
+    if (lastTimestamp === null) lastTimestamp = ts;
+    const dt = (ts - lastTimestamp) / 1000; // seconds since last frame
+    lastTimestamp = ts;
+
+    // Advance animation time; loop with a 1 second pause at end
+    animTime += dt;
+    const loopDuration = animDuration + 1.5; // include pause before loop
+    if (animTime > loopDuration) {
+      animTime = 0;
+    }
+
+    // Current ball position in world coordinates
+    const t = Math.min(animTime, animDuration);
+    const bx = q.ux * t;
+    const by = q.h + q.uy * t - 0.5 * g * t * t;
+
+    drawScene(q, bx, by, t < animDuration);
+
+    animLoop = requestAnimationFrame(frame);
+  }
+
+  animLoop = requestAnimationFrame(frame);
+}
+
+/**
+ * Draw the full scene on the canvas.
+ * Parameters:
+ *   q   - current question
+ *   bx  - ball world x position
+ *   by  - ball world y position
+ *   ballVisible - whether the ball should be drawn
+ */
+function drawScene(q, bx, by, ballVisible) {
+  const cw = canvas.width;
+  const ch = canvas.height;
+  const WATER_H = 45;        // height of water zone at bottom (pixels)
+  const MARGIN_L = 30;
+  const MARGIN_R = 30;
+  const MARGIN_T = 18;
+  const MARGIN_B = WATER_H + 10;
+
+  // === Compute scale to fit the parabola ===
+  const worldW = q.x * 1.15;  // add 15% padding right
+  const worldH = q.y_max * 1.2; // add 20% padding above
+  const scaleX = (cw - MARGIN_L - MARGIN_R) / worldW;
+  const scaleY = (ch - MARGIN_T - MARGIN_B) / worldH;
+  const scale = Math.min(scaleX, scaleY); // uniform scale
+
+  // World → canvas coordinate conversion
+  // In canvas, y increases DOWNWARD, so we invert y
+  const waterLineY = ch - WATER_H; // canvas y of the sea surface
+
+  function wx(worldX) { return MARGIN_L + worldX * scale; }
+  function wy(worldY) { return waterLineY - worldY * scale; }
+
+  ctx.clearRect(0, 0, cw, ch);
+
+  // --- SKY ---
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, waterLineY);
+  skyGrad.addColorStop(0, '#1a6ebd');
+  skyGrad.addColorStop(1, '#c7ebff');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, cw, waterLineY);
+
+  // --- CLOUDS ---
+  drawCloud(ctx, 80, 35, 40, 18);
+  drawCloud(ctx, 300, 22, 55, 22);
+  drawCloud(ctx, 430, 40, 35, 15);
+
+  // --- SEA ---
+  const seaGrad = ctx.createLinearGradient(0, waterLineY, 0, ch);
+  seaGrad.addColorStop(0, '#1565C0');
+  seaGrad.addColorStop(1, '#0d3e80');
+  ctx.fillStyle = seaGrad;
+  ctx.fillRect(0, waterLineY, cw, WATER_H);
+
+  // Sea wave shimmer lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i < 3; i++) {
+    ctx.beginPath();
+    ctx.moveTo(0, waterLineY + 8 + i * 10);
+    for (let xx = 0; xx < cw; xx += 20) {
+      ctx.lineTo(xx + 10, waterLineY + 8 + i * 10 + (Math.sin(xx * 0.1) * 2));
+    }
+    ctx.stroke();
+  }
+
+  // --- TOWER --- (a sturdy stone tower)
+  const towerW = 22;
+  const towerX = wx(0) - towerW / 2;
+  const towerTopY = wy(q.h);
+  const towerBotY = waterLineY;
+
+  // Tower shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.15)';
+  ctx.fillRect(towerX + 4, towerTopY + 4, towerW, towerBotY - towerTopY);
+
+  // Tower body (stone texture look)
+  const towerGrad = ctx.createLinearGradient(towerX, 0, towerX + towerW, 0);
+  towerGrad.addColorStop(0, '#8d7351');
+  towerGrad.addColorStop(0.5, '#a5896a');
+  towerGrad.addColorStop(1, '#7a6143');
+  ctx.fillStyle = towerGrad;
+  ctx.fillRect(towerX, towerTopY, towerW, towerBotY - towerTopY);
+
+  // Tower battlements (top crenellations)
+  ctx.fillStyle = '#8d7351';
+  for (let i = 0; i < 4; i++) {
+    ctx.fillRect(towerX + i * 6, towerTopY - 7, 4, 7);
+  }
+
+  // Tower height label
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 10px Trebuchet MS';
+  ctx.textAlign = 'center';
+  if (q.given.includes('h')) {
+    ctx.fillText(`h = ${q.h}m`, towerX - 18, (towerTopY + waterLineY) / 2);
+  } else {
+    ctx.fillText(`h = ?`, towerX - 18, (towerTopY + waterLineY) / 2);
+  }
+
+  // --- CANNON ---
+  const cannonBaseX = wx(0);
+  const cannonBaseY = wy(q.h);
+  const cannonLen = 28;
+
+  ctx.save();
+  ctx.translate(cannonBaseX, cannonBaseY);
+  ctx.rotate(-q.theta); // theta above horizontal → rotate CCW in canvas
+
+  // Cannon barrel
+  const canGrad = ctx.createLinearGradient(0, -6, 0, 6);
+  canGrad.addColorStop(0, '#555');
+  canGrad.addColorStop(0.5, '#aaa');
+  canGrad.addColorStop(1, '#333');
+  ctx.fillStyle = canGrad;
+  ctx.beginPath();
+  ctx.rect(0, -5, cannonLen, 10);
+  ctx.fill();
+
+  // Cannon opening flash (muzzle)
+  ctx.fillStyle = '#FF6B35';
+  ctx.beginPath();
+  ctx.arc(cannonLen, 0, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+
+  // Angle arc indicator
+  ctx.strokeStyle = 'rgba(255,215,0,0.7)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.arc(cannonBaseX, cannonBaseY, 20, -q.theta, 0);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Angle label
+  ctx.fillStyle = '#FFD700';
+  ctx.font = 'bold 10px Trebuchet MS';
+  ctx.textAlign = 'left';
+  if (q.given.includes('theta')) {
+    ctx.fillText(`θ = ${q.theta_deg}°`, cannonBaseX + 22, cannonBaseY + 4);
+  } else {
+    ctx.fillText(`θ = ?°`, cannonBaseX + 22, cannonBaseY + 4);
+  }
+
+  // --- PARABOLIC ARC (dashed path) ---
+  ctx.strokeStyle = 'rgba(255,200,50,0.55)';
+  ctx.lineWidth = 1.8;
+  ctx.setLineDash([5, 5]);
+  ctx.beginPath();
+  const steps = 60;
+  for (let i = 0; i <= steps; i++) {
+    const t = (i / steps) * q.t_total;
+    const px = q.ux * t;
+    const py = q.h + q.uy * t - 0.5 * g * t * t;
+    if (i === 0) ctx.moveTo(wx(px), wy(py));
+    else ctx.lineTo(wx(px), wy(py));
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Max height horizontal line
+  const ymaxY = wy(q.y_max);
+  ctx.strokeStyle = 'rgba(0,200,180,0.4)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(MARGIN_L, ymaxY);
+  ctx.lineTo(cw - MARGIN_R, ymaxY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#00c8b4';
+  ctx.font = '9px Trebuchet MS';
+  ctx.textAlign = 'right';
+  if (q.given.includes('ymax')) {
+    ctx.fillText(`yₘₐₓ=${q.y_max.toFixed(1)}m`, cw - MARGIN_R - 2, ymaxY - 2);
+  } else {
+    ctx.fillText(`yₘₐₓ=?`, cw - MARGIN_R - 2, ymaxY - 2);
+  }
+
+  // --- BOAT ---
+  const boatX = wx(q.x);
+  drawBoat(ctx, boatX, waterLineY, 34, 16);
+
+  // Horizontal range arrow
+  ctx.strokeStyle = 'rgba(255,100,100,0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(wx(0), waterLineY + 22);
+  ctx.lineTo(boatX, waterLineY + 22);
+  ctx.stroke();
+  // Arrow heads
+  drawArrowHead(ctx, wx(0), waterLineY + 22, 'left');
+  drawArrowHead(ctx, boatX, waterLineY + 22, 'right');
+  ctx.fillStyle = '#ff8888';
+  ctx.font = 'bold 10px Trebuchet MS';
+  ctx.textAlign = 'center';
+  if (q.given.includes('x')) {
+    ctx.fillText(`x = ${q.x.toFixed(1)}m`, (wx(0) + boatX) / 2, waterLineY + 35);
+  } else {
+    ctx.fillText(`x = ?`, (wx(0) + boatX) / 2, waterLineY + 35);
+  }
+
+  // --- ANIMATED CANNONBALL ---
+  if (ballVisible) {
+    const ballCanvasX = wx(bx);
+    const ballCanvasY = wy(by);
+
+    // Glow effect
+    const glow = ctx.createRadialGradient(ballCanvasX, ballCanvasY, 0, ballCanvasX, ballCanvasY, 10);
+    glow.addColorStop(0, 'rgba(255,200,0,0.8)');
+    glow.addColorStop(1, 'rgba(255,80,0,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(ballCanvasX, ballCanvasY, 10, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Ball
+    ctx.fillStyle = '#222';
+    ctx.strokeStyle = '#888';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(ballCanvasX, ballCanvasY, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  } else {
+    // Splash at landing when ball has landed
+    if (animTime > animDuration) {
+      const splashX = wx(q.x);
+      const splashT = animTime - animDuration;
+      if (splashT < 0.4) {
+        drawSplash(ctx, splashX, waterLineY, splashT);
+      }
+    }
+  }
+}
+
+/** Draw a fluffy cloud */
+function drawCloud(ctx, x, y, w, h) {
+  ctx.fillStyle = 'rgba(255,255,255,0.72)';
+  ctx.beginPath();
+  ctx.ellipse(x, y, w * 0.5, h * 0.5, 0, 0, Math.PI * 2);
+  ctx.ellipse(x + w * 0.25, y - h * 0.2, w * 0.35, h * 0.45, 0, 0, Math.PI * 2);
+  ctx.ellipse(x - w * 0.25, y - h * 0.1, w * 0.3, h * 0.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/** Draw a simple colourful boat */
+function drawBoat(ctx, x, waterY, w, h) {
+  // Hull
+  ctx.fillStyle = '#D32F2F';
+  ctx.beginPath();
+  ctx.moveTo(x - w / 2, waterY);
+  ctx.lineTo(x - w / 2 + 4, waterY + h);
+  ctx.lineTo(x + w / 2 - 4, waterY + h);
+  ctx.lineTo(x + w / 2, waterY);
+  ctx.closePath();
+  ctx.fill();
+
+  // Deck
+  ctx.fillStyle = '#FFEB3B';
+  ctx.fillRect(x - w / 2 + 2, waterY - 5, w - 4, 5);
+
+  // Mast
+  ctx.strokeStyle = '#5D4037';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x, waterY - 5);
+  ctx.lineTo(x, waterY - 22);
+  ctx.stroke();
+
+  // Sail
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.beginPath();
+  ctx.moveTo(x, waterY - 21);
+  ctx.lineTo(x + 13, waterY - 10);
+  ctx.lineTo(x, waterY - 6);
+  ctx.closePath();
+  ctx.fill();
+}
+
+/** Draw a splash effect */
+function drawSplash(ctx, x, y, t) {
+  ctx.strokeStyle = `rgba(100,200,255,${1 - t * 2.5})`;
+  ctx.lineWidth = 2;
+  const r = t * 60;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0.8, Math.PI - 0.8);
+  ctx.stroke();
+
+  // Droplets
+  for (let i = 0; i < 5; i++) {
+    const angle = -Math.PI * 0.8 + i * (Math.PI * 0.4 / 4);
+    const dist = t * 40 + 5;
+    ctx.fillStyle = `rgba(150,220,255,${1 - t * 3})`;
+    ctx.beginPath();
+    ctx.arc(x + Math.cos(angle) * dist, y - Math.abs(Math.sin(angle)) * dist, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+/** Draw a small arrowhead */
+function drawArrowHead(ctx, x, y, dir) {
+  ctx.fillStyle = 'rgba(255,100,100,0.8)';
+  ctx.beginPath();
+  if (dir === 'right') {
+    ctx.moveTo(x, y);
+    ctx.lineTo(x - 8, y - 4);
+    ctx.lineTo(x - 8, y + 4);
+  } else {
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + 8, y - 4);
+    ctx.lineTo(x + 8, y + 4);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+
+// ================================================================
+// INIT — make intro screen visible
+// ================================================================
+document.getElementById('introScreen').style.display = 'flex';
+document.getElementById('gameScreen').style.display = 'none';
+document.getElementById('endScreen').style.display = 'none';
+</script>
+</body>
+</html>
